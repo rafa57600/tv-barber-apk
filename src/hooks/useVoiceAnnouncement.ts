@@ -193,29 +193,33 @@ export function useNewAppointmentAnnouncer(
 
         if (newAppointments.length > 0 && !isAnnouncing.current) {
             const apt = newAppointments[0]
-            isAnnouncing.current = true
-            const clientName = apt.client_name || 'Un client'
-            const serviceName = apt.serviceData?.name || 'une coupe'
-            const dayName = getFrenchDayName(apt.date)
-            const time = apt.start_time
+            isAnnouncing.current = true // Keep simple lock here
 
-            // 1. Pause music
-            onPauseMusic?.()
-
-            // 2. Show visual banner
-            setActiveAnnouncement({ clientName, serviceName, dayName, time })
-
-            // 3. Play hospital chime
-            playHospitalChime()
-
-            // 4. Speak announcement after chime finishes (~1.6 s)
+            // Wait 15 seconds before starting the announcement sequence
             setTimeout(() => {
-                const message =
-                    `Une nouvelle réservation vient d'être effectuée par ${clientName}. ` +
-                    `Elle concerne une séance de ${serviceName}, prévue ${dayName} à ${time.replace(':', ' heure ')}. ` +
-                    `Merci de votre attention.`
-                speak(message)
-            }, 1800)
+                const clientName = apt.client_name || 'Un client'
+                const serviceName = apt.serviceData?.name || 'une coupe'
+                const dayName = getFrenchDayName(apt.date)
+                const time = apt.start_time
+
+                // 1. Pause music
+                onPauseMusic?.()
+
+                // 2. Show visual banner
+                setActiveAnnouncement({ clientName, serviceName, dayName, time })
+
+                // 3. Play hospital chime
+                playHospitalChime()
+
+                // 4. Speak announcement after chime finishes (~1.6 s)
+                setTimeout(() => {
+                    const message =
+                        `Une nouvelle réservation vient d'être effectuée par ${clientName}. ` +
+                        `Elle concerne une séance de ${serviceName}, prévue ${dayName} à ${time.replace(':', ' heure ')}. ` +
+                        `Merci de votre attention.`
+                    speak(message)
+                }, 1800)
+            }, 15000)
         }
 
         previousIds.current = currentIds

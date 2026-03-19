@@ -29,8 +29,6 @@ function initializeAdmin() {
             credentials = tryParseServiceAccount(envFirebaseCredentials)
             if (credentials) {
                 console.log('Firebase Admin: Using FIREBASE_SERVICE_ACCOUNT env var')
-            } else {
-                console.warn('Firebase Admin: FIREBASE_SERVICE_ACCOUNT is not valid JSON, trying fallback options')
             }
         }
         // Option 2: GOOGLE_APPLICATION_CREDENTIALS as JSON string
@@ -38,8 +36,6 @@ function initializeAdmin() {
             credentials = tryParseServiceAccount(envCredentials)
             if (credentials) {
                 console.log('Firebase Admin: Using GOOGLE_APPLICATION_CREDENTIALS as JSON')
-            } else {
-                console.warn('Firebase Admin: GOOGLE_APPLICATION_CREDENTIALS JSON is invalid, trying fallback options')
             }
         }
         // Option 3: GOOGLE_APPLICATION_CREDENTIALS as file path
@@ -83,4 +79,3 @@ const adminApp = initializeAdmin()
 
 export { adminApp }
 export default admin
-
