@@ -123,7 +123,7 @@ export function Display2Screen() {
     const handlePause = useCallback(() => { spotifyCtrl.current?.pause() }, [])
     const handleResume = useCallback(() => { spotifyCtrl.current?.resume() }, [])
 
-    const { activeAnnouncement, dismissAnnouncement } = useNewAppointmentAnnouncer(
+    const { activeAnnouncement, dismissAnnouncement, isSpeaking } = useNewAppointmentAnnouncer(
         recentAppointments, true, handlePause, handleResume
     )
 
@@ -273,7 +273,7 @@ export function Display2Screen() {
 
     return (
         <div ref={rootRef} className="h-screen w-screen bg-black relative overflow-hidden" tabIndex={0}>
-            <AnnouncementBanner announcement={activeAnnouncement} onDismiss={dismissAnnouncement} />
+            <AnnouncementBanner announcement={activeAnnouncement} isSpeaking={isSpeaking} onDismiss={dismissAnnouncement} />
 
             {/* Full-screen Spotify player */}
             <SpotifyPlayer

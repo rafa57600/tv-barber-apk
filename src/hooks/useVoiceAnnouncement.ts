@@ -140,9 +140,10 @@ export function useNewAppointmentAnnouncer(
     enabled: boolean = true,
     onPauseMusic?: () => void,
     onResumeMusic?: () => void
-): { activeAnnouncement: AnnouncementData | null; dismissAnnouncement: () => void } {
+): { activeAnnouncement: AnnouncementData | null; dismissAnnouncement: () => void; isSpeaking: boolean } {
     const previousIds = useRef<Set<string>>(new Set())
     const isFirstLoad = useRef(true)
+    const [isSpeakingState, setIsSpeakingState] = useState(false)
     const isAnnouncing = useRef(false)
     const [activeAnnouncement, setActiveAnnouncement] = useState<AnnouncementData | null>(null)
 
@@ -152,20 +153,25 @@ export function useNewAppointmentAnnouncer(
         rate: settings.rate,
         pitch: settings.pitch,
         volume: settings.volume,
-        onSpeechStart: onPauseMusic,
+        onSpeechStart: () => {
+            setIsSpeakingState(true)
+            onPauseMusic?.()
+        },
         onSpeechEnd: () => {
+            setIsSpeakingState(false)
             isAnnouncing.current = false
-            // Dismiss the banner and resume music after speech ends
+            // Dismiss the banner 1s after speech ends
             setTimeout(() => {
                 setActiveAnnouncement(null)
                 onResumeMusic?.()
-            }, 1500)
+            }, 1000)
         }
     })
 
     const dismissAnnouncement = useCallback(() => {
         if (!activeAnnouncement) return
         isAnnouncing.current = false
+        setIsSpeakingState(false)
         setActiveAnnouncement(null)
         if (typeof window !== 'undefined' && window.speechSynthesis) {
             window.speechSynthesis.cancel()
@@ -205,10 +211,9 @@ export function useNewAppointmentAnnouncer(
             // 4. Speak announcement after chime finishes (~1.6 s)
             setTimeout(() => {
                 const message =
-                    `Attention s'il vous plait. ` +
-                    `Nouveau rendez-vous pour ${clientName}. ` +
-                    `${serviceName}, ${dayName} a ${time}. ` +
-                    `Merci.`
+                    `Une nouvelle réservation vient d'être effectuée par ${clientName}. ` +
+                    `Elle concerne une séance de ${serviceName}, prévue ${dayName} à ${time.replace(':', ' heure ')}. ` +
+                    `Merci de votre attention.`
                 speak(message)
             }, 1800)
         }
@@ -216,7 +221,7 @@ export function useNewAppointmentAnnouncer(
         previousIds.current = currentIds
     }, [appointments, enabled, speak, onPauseMusic, onResumeMusic])
 
-    return { activeAnnouncement, dismissAnnouncement }
+    return { activeAnnouncement, dismissAnnouncement, isSpeaking: isSpeakingState }
 }
 
 // ─── Hospital-style 3-tone chime ─────────────────────────────────────────────

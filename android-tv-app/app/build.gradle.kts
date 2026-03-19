@@ -49,6 +49,7 @@ val hasReleaseSigning =
 android {
   namespace = "com.barbershop.tv"
   compileSdk = 35
+  buildToolsVersion = "35.0.0"
 
   signingConfigs {
     if (hasReleaseSigning) {
