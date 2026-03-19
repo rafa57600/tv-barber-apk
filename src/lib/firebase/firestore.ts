@@ -264,6 +264,66 @@ export async function cancelAppointment(appointmentId: string): Promise<void> {
     await updateAppointment(appointmentId, { status: 'cancelled' })
 }
 
+/**
+ * Subscribe to appointments for a specific date in real-time
+ */
+export function subscribeToAppointments(
+    filters: { date?: string; barberId?: string; status?: string },
+    callback: (appointments: Appointment[]) => void
+): () => void {
+    const database = ensureDb()
+    const constraints: QueryConstraint[] = []
+
+    if (filters.date) constraints.push(where('date', '==', filters.date))
+    if (filters.barberId) constraints.push(where('barber_id', '==', filters.barberId))
+    if (filters.status) constraints.push(where('status', '==', filters.status))
+
+    const q = query(collection(database, COLLECTIONS.APPOINTMENTS), ...constraints)
+    
+    return onSnapshot(q, (snapshot) => {
+        const appointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment))
+        callback(appointments)
+    }, (error) => {
+        console.error("Error in appointments subscription:", error)
+    })
+}
+
+/**
+ * Subscribe to recently created appointments in real-time (for announcements)
+ */
+export function subscribeToRecentlyCreatedAppointments(
+    minutesAgo: number = 5,
+    callback: (appointments: Appointment[]) => void
+): () => void {
+    const database = ensureDb()
+    
+    // We listen to all recent appointments by created_at
+    // Note: Firestore onSnapshot will trigger for any new or modified document matching the query
+    const q = query(
+        collection(database, COLLECTIONS.APPOINTMENTS),
+        orderBy('created_at', 'desc'),
+        // We can't easily filter by "dynamic" now-N minutes in a persistent query easily without re-creating it,
+        // so we take a larger window and filter client-side for precision if needed, but usually 
+        // just getting the last few docs and filtering by time is sufficient.
+    )
+
+    return onSnapshot(q, (snapshot) => {
+        const cutoffTime = new Date(Date.now() - minutesAgo * 60 * 1000)
+        const recent = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Appointment))
+            .filter(apt => {
+                if (!apt.created_at) return false
+                const createdAt = typeof apt.created_at === 'string' 
+                    ? new Date(apt.created_at) 
+                    : (apt.created_at as { toDate: () => Date }).toDate?.() || new Date(apt.created_at as unknown as string)
+                return createdAt >= cutoffTime
+            })
+        callback(recent)
+    }, (error) => {
+        console.error("Error in recent appointments subscription:", error)
+    })
+}
+
 // ==================== SHOP CLOSURES ====================
 export async function getShopClosures(): Promise<ShopClosure[]> {
     const database = ensureDb()

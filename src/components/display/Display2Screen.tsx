@@ -7,7 +7,12 @@ import { fr } from 'date-fns/locale'
 import { Clock, User, ChevronUp, ChevronDown } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { getAppointments, getBarbers, getServices } from '@/lib/firebase/firestore'
+import {
+    getBarbers,
+    getServices,
+    subscribeToAppointments,
+    subscribeToRecentlyCreatedAppointments
+} from '@/lib/firebase/firestore'
 import { useNewAppointmentAnnouncer } from '@/hooks/useVoiceAnnouncement'
 import { SpotifyPlayer } from '@/components/display/SpotifyPlayer'
 import { AnnouncementBanner } from '@/components/display/AnnouncementBanner'
@@ -129,40 +134,63 @@ export function Display2Screen() {
 
     // ─── Data loading ────────────────────────────────────────────────────
 
-    const loadAppointments = useCallback(async () => {
-        try {
-            const today = format(new Date(), 'yyyy-MM-dd')
-            const [a, b, s] = await Promise.all([getAppointments({ date: today }), getBarbers(false), getServices(false)])
-            setAppointments(
-                a.filter(x => x.status !== 'cancelled')
-                    .map(x => ({ ...x, barberData: b.find(bb => bb.id === x.barber_id), serviceData: s.find(ss => ss.id === x.service_id) }))
-                    .sort((x, y) => x.start_time.localeCompare(y.start_time))
-            )
-        } catch (e) { console.error('Error loading appointments:', e) }
-    }, [])
-
-    const loadRecentAppointments = useCallback(async () => {
-        try {
-            const { getRecentlyCreatedAppointments } = await import('@/lib/firebase/firestore')
-            const [r, b, s] = await Promise.all([getRecentlyCreatedAppointments(2), getBarbers(false), getServices(false)])
-            setRecentAppointments(
-                r.filter(x => x.status !== 'cancelled')
-                    .map(x => ({ ...x, barberData: b.find(bb => bb.id === x.barber_id), serviceData: s.find(ss => ss.id === x.service_id) }))
-            )
-        } catch (e) { console.error('Error loading recent appointments:', e) }
-    }, [])
+    // ─── Data loading (Legacy - now handled by subscriptions) ──────────
+    // Removed loadAppointments and loadRecentAppointments in favor of real-time listeners
 
     // ─── Effects ─────────────────────────────────────────────────────────
 
-    useEffect(() => { setIsHydrated(true) }, [])
+    useEffect(() => { 
+        const timer = setTimeout(() => setIsHydrated(true), 0)
+        return () => clearTimeout(timer)
+    }, [])
     useEffect(() => { if (isHydrated) rootRef.current?.focus() }, [isHydrated])
 
+    // ─── Real-Time Subscriptions ───────────────────────────────────────
+
     useEffect(() => {
-        loadAppointments(); loadRecentAppointments()
-        const d = setInterval(loadAppointments, 30000)
-        const a = setInterval(loadRecentAppointments, 15000)
-        return () => { clearInterval(d); clearInterval(a) }
-    }, [loadAppointments, loadRecentAppointments])
+        if (!isHydrated) return
+
+        const today = format(new Date(), 'yyyy-MM-dd')
+
+        let unsubscribeAppointments: (() => void) | null = null
+        let unsubscribeRecent: (() => void) | null = null
+
+        const initSubscriptions = async () => {
+            const [barbers, services] = await Promise.all([getBarbers(false), getServices(false)])
+
+            // Subscribe to daily appointments
+            unsubscribeAppointments = subscribeToAppointments({ date: today }, (a: Appointment[]) => {
+                setAppointments(
+                    a.filter(x => x.status !== 'cancelled')
+                        .map(x => ({
+                            ...x,
+                            barberData: barbers.find((bb: Barber) => bb.id === x.barber_id),
+                            serviceData: services.find((ss: Service) => ss.id === x.service_id)
+                        }))
+                        .sort((x, y) => x.start_time.localeCompare(y.start_time))
+                )
+            })
+
+            // Subscribe to recently created (for voice announcements)
+            unsubscribeRecent = subscribeToRecentlyCreatedAppointments(2, (r: Appointment[]) => {
+                setRecentAppointments(
+                    r.filter(x => x.status !== 'cancelled')
+                        .map(x => ({
+                            ...x,
+                            barberData: barbers.find((bb: Barber) => bb.id === x.barber_id),
+                            serviceData: services.find((ss: Service) => ss.id === x.service_id)
+                        }))
+                )
+            })
+        }
+
+        initSubscriptions()
+
+        return () => {
+            unsubscribeAppointments?.()
+            unsubscribeRecent?.()
+        }
+    }, [isHydrated])
 
     useEffect(() => {
         const id = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -279,14 +307,14 @@ export function Display2Screen() {
             <SpotifyPlayer
                 displayId="display2"
                 className="absolute inset-0 w-full h-full"
-                onControlsReady={(ref) => { spotifyCtrl.current = ref }}
+                onControlsReady={(ref: SpotifyPlayerRef) => { spotifyCtrl.current = ref }}
             />
 
             {/* Top bar */}
             <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-20">
                 <div className="flex items-center gap-3 bg-black/50 backdrop-blur-md rounded-2xl px-4 py-2">
                     <img src="/icons/icon-512.png" alt="BarberSHOP" className="w-10 h-10 rounded-xl" />
-                    <span className="text-lg font-bold text-white">Barber<span className="text-green-500">SHOP</span></span>
+                    <span className="text-lg font-bold text-white">Fly<span className="text-green-500"> Barbershop</span></span>
                 </div>
                 <div className="bg-black/50 backdrop-blur-md rounded-2xl px-6 py-2 flex items-center gap-4">
                     <span className="text-white/60 text-sm">{format(currentTime, 'EEEE d MMMM', { locale: fr })}</span>
