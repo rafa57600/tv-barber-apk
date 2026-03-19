@@ -146,6 +146,14 @@ export function useNewAppointmentAnnouncer(
     const [isSpeakingState, setIsSpeakingState] = useState(false)
     const isAnnouncing = useRef(false)
     const [activeAnnouncement, setActiveAnnouncement] = useState<AnnouncementData | null>(null)
+    const safetyTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+    const clearSafetyTimer = useCallback(() => {
+        if (safetyTimerRef.current) {
+            clearTimeout(safetyTimerRef.current)
+            safetyTimerRef.current = null
+        }
+    }, [])
 
     const settings = getSpeechSettings()
 
@@ -158,6 +166,7 @@ export function useNewAppointmentAnnouncer(
             onPauseMusic?.()
         },
         onSpeechEnd: () => {
+            clearSafetyTimer()
             setIsSpeakingState(false)
             isAnnouncing.current = false
             // Dismiss the banner 1s after speech ends
@@ -170,6 +179,7 @@ export function useNewAppointmentAnnouncer(
 
     const dismissAnnouncement = useCallback(() => {
         if (!activeAnnouncement) return
+        clearSafetyTimer()
         isAnnouncing.current = false
         setIsSpeakingState(false)
         setActiveAnnouncement(null)
@@ -177,7 +187,7 @@ export function useNewAppointmentAnnouncer(
             window.speechSynthesis.cancel()
         }
         onResumeMusic?.()
-    }, [activeAnnouncement, onResumeMusic])
+    }, [activeAnnouncement, onResumeMusic, clearSafetyTimer])
 
     useEffect(() => {
         if (!enabled) return
@@ -201,6 +211,16 @@ export function useNewAppointmentAnnouncer(
                 const serviceName = apt.serviceData?.name || 'une coupe'
                 const dayName = getFrenchDayName(apt.date)
                 const time = apt.start_time
+
+                // Set a safety timeout to dismiss the announcement after 30 seconds
+                // in case onSpeechEnd never fires (common in some Android WebViews)
+                clearSafetyTimer()
+                safetyTimerRef.current = setTimeout(() => {
+                    if (isAnnouncing.current) {
+                        console.warn('Safety timeout: Force-dismissing stuck announcement')
+                        dismissAnnouncement()
+                    }
+                }, 30000)
 
                 // 1. Pause music
                 onPauseMusic?.()
