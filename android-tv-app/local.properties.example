@@ -1,0 +1,8 @@
+# Copy to local.properties and set real values locally
+TV_BASE_URL=https://barbershoprdv.fsp57.com/tv/setup
+
+# Release signing (optional but recommended for production builds)
+# TV_RELEASE_STORE_FILE=keystore/barbershop-tv.jks
+# TV_RELEASE_STORE_PASSWORD=change-me
+# TV_RELEASE_KEY_ALIAS=barbershop-tv
+# TV_RELEASE_KEY_PASSWORD=change-me

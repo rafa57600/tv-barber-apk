@@ -1,0 +1,38 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Users\silok\AppData\Roaming\npm\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.6.1
+2 info using node@v22.16.0
+3 silly config load:file:C:\Users\silok\AppData\Roaming\npm\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\silok\Downloads\barberrdv-tv\bshoprdv\.npmrc
+5 silly config load:file:C:\Users\silok\.npmrc
+6 silly config load:file:C:\Users\silok\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm install
+8 verbose argv "install" "--no-audit" "--no-fund"
+9 verbose logfile logs-max:10 dir:C:\Users\silok\Downloads\barberrdv-tv\bshoprdv\.npm-cache\_logs\2026-03-15T10_18_24_880Z-
+10 verbose logfile C:\Users\silok\Downloads\barberrdv-tv\bshoprdv\.npm-cache\_logs\2026-03-15T10_18_24_880Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 silly idealTree buildDeps
+14 silly placeDep ROOT @opentelemetry/api@1.9.0 OK for: bshoprdv@0.1.0 want: file:vendor/opentelemetry-api-shim
+15 verbose stack TypeError: Invalid Version: 
+15 verbose stack     at new SemVer (C:\Users\silok\AppData\Roaming\npm\node_modules\npm\node_modules\semver\classes\semver.js:40:13)
+15 verbose stack     at compare (C:\Users\silok\AppData\Roaming\npm\node_modules\npm\node_modules\semver\functions\compare.js:5:32)
+15 verbose stack     at Object.eq (C:\Users\silok\AppData\Roaming\npm\node_modules\npm\node_modules\semver\functions\eq.js:4:29)
+15 verbose stack     at Node.canDedupe (C:\Users\silok\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\node.js:1140:32)
+15 verbose stack     at PlaceDep.pruneDedupable (C:\Users\silok\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\place-dep.js:426:14)
+15 verbose stack     at new PlaceDep (C:\Users\silok\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\place-dep.js:278:14)
+15 verbose stack     at #buildDepStep (C:\Users\silok\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:932:18)
+15 verbose stack     at async Arborist.buildIdealTree (C:\Users\silok\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:182:7)
+15 verbose stack     at async Promise.all (index 1)
+15 verbose stack     at async Arborist.reify (C:\Users\silok\AppData\Roaming\npm\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\reify.js:117:5)
+16 error Invalid Version: 
+17 silly unfinished npm timer reify 1773569905357
+18 silly unfinished npm timer reify:loadTrees 1773569905358
+19 silly unfinished npm timer idealTree:buildDeps 1773569905495
+20 silly unfinished npm timer idealTree:#root 1773569905495
+21 verbose cwd C:\Users\silok\Downloads\barberrdv-tv\bshoprdv
+22 verbose os Windows_NT 10.0.26200
+23 verbose node v22.16.0
+24 verbose npm  v11.6.1
+25 verbose exit 1
+26 verbose code 1
+27 error A complete log of this run can be found in: C:\Users\silok\Downloads\barberrdv-tv\bshoprdv\.npm-cache\_logs\2026-03-15T10_18_24_880Z-debug-0.log
