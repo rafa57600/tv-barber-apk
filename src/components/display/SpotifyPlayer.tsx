@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle, Music, QrCode, Wifi, WifiOff, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useSpotifySDK } from '@/hooks/useSpotifySDK'
 import { subscribeToDisplayState, updateDisplayState } from '@/lib/firebase/firestore'
 import type { SpotifyPlaybackState } from '@/hooks/useSpotifySDK'
@@ -49,19 +48,7 @@ export function extractSpotifyUri(input: string): string | null {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function SpotifyPlayer({ displayId, className, onPlaybackUpdate, onControlsReady }: SpotifyPlayerProps) {
-    const [currentImageIndex, setCurrentImageIndex] = useState(0)
-    const fallbackImages = [
-        '/display/fallback-1.png',
-        '/display/fallback-2.png',
-        '/display/fallback-3.png'
-    ]
 
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrentImageIndex((prev) => (prev + 1) % fallbackImages.length)
-        }, 8000)
-        return () => clearInterval(timer)
-    }, [fallbackImages.length])
     const { ready, connected, connectionMode, needsAuth, error, playback, controls, deviceId, isAndroidApp } = useSpotifySDK(
         `Fly Barbershop ${displayId}`
     )
@@ -408,27 +395,8 @@ export function SpotifyPlayer({ displayId, className, onPlaybackUpdate, onContro
                         {track.album.name && <p className="text-xs text-zinc-500 truncate">{track.album.name}</p>}
                     </div>
                 ) : (
-                    <div className="relative w-80 h-80 flex flex-col items-center justify-center">
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={currentImageIndex}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 1.05 }}
-                                transition={{ duration: 1.5, ease: 'easeInOut' }}
-                                className="absolute inset-0"
-                            >
-                                <img
-                                    src={fallbackImages[currentImageIndex]}
-                                    alt="Fly Barbershop Gallery"
-                                    className="w-full h-full object-cover rounded-3xl shadow-2xl shadow-black/80 border border-white/10"
-                                />
-                            </motion.div>
-                        </AnimatePresence>
-                        <div className="absolute -bottom-10 flex flex-col items-center gap-1">
-                            <p className="text-sm font-medium text-white/40 tracking-widest uppercase">Fly Barbershop</p>
-                            <p className="text-[10px] text-zinc-500 italic">En attente de lecture...</p>
-                        </div>
+                    <div className="text-center">
+                        <p className="text-sm text-zinc-400">En attente de lecture...</p>
                     </div>
                 )}
 
