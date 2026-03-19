@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Music, QrCode, Wifi, WifiOff, X } from 'lucide-react'
+import { CheckCircle, Music, QrCode, Wifi, WifiOff, X } from 'lucide-react'
 import { useSpotifySDK } from '@/hooks/useSpotifySDK'
 import { subscribeToDisplayState, updateDisplayState } from '@/lib/firebase/firestore'
 import type { SpotifyPlaybackState } from '@/hooks/useSpotifySDK'
@@ -48,7 +48,7 @@ export function extractSpotifyUri(input: string): string | null {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function SpotifyPlayer({ displayId, className, onPlaybackUpdate, onControlsReady }: SpotifyPlayerProps) {
-    const { ready, connected, needsAuth, error, playback, controls, deviceId, isAndroidApp } = useSpotifySDK(
+    const { ready, connected, connectionMode, needsAuth, error, playback, controls, deviceId, isAndroidApp } = useSpotifySDK(
         `BarberSHOP ${displayId}`
     )
     const {
@@ -204,16 +204,18 @@ export function SpotifyPlayer({ displayId, className, onPlaybackUpdate, onContro
         play(defaultUri)
     }, [ready, deviceId, play])
 
+    const isShowingAnyQr = isUnsupportedPlayback || needsAuth || showQrOverlay
+
     useEffect(() => {
-        if (!isUnsupportedPlayback) return
+        if (!isShowingAnyQr) return
 
         void checkSpotifyLinked()
         const intervalId = window.setInterval(() => {
             void checkSpotifyLinked()
-        }, 5000)
+        }, 3000)
 
         return () => window.clearInterval(intervalId)
-    }, [checkSpotifyLinked, isUnsupportedPlayback])
+    }, [checkSpotifyLinked, isShowingAnyQr])
 
     const renderQrLogin = (title: string, subtitle: string) => (
         <div className={`${className} flex flex-col items-center justify-center bg-zinc-900 text-white gap-4 p-6 text-center`}>
@@ -242,6 +244,22 @@ export function SpotifyPlayer({ displayId, className, onPlaybackUpdate, onContro
                 <p className="max-w-lg break-all rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-[11px] text-zinc-400">
                     {phoneLoginUrl}
                 </p>
+            )}
+
+            {spotifyLinked === true && (
+                <div className="mt-4 max-w-md w-full rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
+                    <CheckCircle className="mx-auto mb-2 h-8 w-8 text-emerald-500" />
+                    <p className="font-semibold text-emerald-300">Compte lié avec succès !</p>
+                    {isAndroidApp && !connected ? (
+                        <p className="mt-2 text-xs text-emerald-200/80">
+                            Veuillez ouvrir l&apos;application <strong>Spotify TV</strong> via le menu de la télévision pour démarrer la lecture.
+                        </p>
+                    ) : (
+                        <p className="mt-2 text-xs text-emerald-200/80">
+                            Fermeture automatique dans quelques instants...
+                        </p>
+                    )}
+                </div>
             )}
         </div>
     )
@@ -348,7 +366,7 @@ export function SpotifyPlayer({ displayId, className, onPlaybackUpdate, onContro
                 {/* Connection status */}
                 <div className="flex items-center gap-1.5 text-xs text-zinc-500">
                     {connected
-                        ? <><Wifi className="w-3 h-3 text-green-500" /><span className="text-green-500">{isAndroidApp ? 'Spotify App SDK' : 'Spotify Connect'}</span></>
+                        ? <><Wifi className="w-3 h-3 text-green-500" /><span className="text-green-500">{connectionMode === 'fallback' ? 'Web API (Fallback)' : isAndroidApp ? 'Spotify App SDK' : 'Spotify Connect'}</span></>
                         : <><WifiOff className="w-3 h-3" /><span>Deconnecte</span></>
                     }
                 </div>
@@ -408,25 +426,49 @@ export function SpotifyPlayer({ displayId, className, onPlaybackUpdate, onContro
                             <X className="h-4 w-4" />
                         </button>
 
-                        <p className="mb-1 text-lg font-semibold text-white">Login Spotify par QR</p>
-                        <p className="mb-4 text-sm text-zinc-400">Scannez avec votre telephone pour connecter le compte du salon.</p>
-
-                        {qrImageUrl ? (
-                            <img
-                                src={qrImageUrl}
-                                alt="QR code login Spotify"
-                                className="mx-auto h-64 w-64 rounded-2xl border border-white/20 bg-white p-3"
-                            />
+                        {spotifyLinked === true ? (
+                            <div className="text-center py-6">
+                                <CheckCircle className="mx-auto mb-4 h-16 w-16 text-emerald-500" />
+                                <p className="mb-2 text-xl font-bold text-white">Compte lié avec succès !</p>
+                                {isAndroidApp && !connected ? (
+                                    <p className="text-sm text-zinc-300 bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20">
+                                        Pour lancer la musique, veuillez quitter cet écran et ouvrir l&apos;application <strong>Spotify TV</strong> déjà installée sur cette télévision.
+                                    </p>
+                                ) : (
+                                    <p className="text-sm text-zinc-300">
+                                        Le contrôle à distance est désormais disponible.
+                                    </p>
+                                )}
+                                <button
+                                    onClick={() => setShowQrOverlay(false)}
+                                    className="mt-6 inline-flex rounded-full bg-emerald-500 px-8 py-2.5 text-sm font-bold text-black hover:bg-emerald-400"
+                                >
+                                    Fermer
+                                </button>
+                            </div>
                         ) : (
-                            <p className="text-xs text-zinc-500">QR indisponible, utilisez le bouton ci-dessous.</p>
-                        )}
+                            <>
+                                <p className="mb-1 text-lg font-semibold text-white">Login Spotify par QR</p>
+                                <p className="mb-4 text-sm text-zinc-400">Scannez avec votre telephone pour connecter le compte du salon.</p>
 
-                        <a
-                            href={phoneLoginPath}
-                            className="mt-4 inline-flex rounded-full bg-green-500 px-6 py-2.5 text-sm font-bold text-black hover:bg-green-400"
-                        >
-                            Ouvrir login Spotify
-                        </a>
+                                {qrImageUrl ? (
+                                    <img
+                                        src={qrImageUrl}
+                                        alt="QR code login Spotify"
+                                        className="mx-auto h-64 w-64 rounded-2xl border border-white/20 bg-white p-3"
+                                    />
+                                ) : (
+                                    <p className="text-xs text-zinc-500">QR indisponible, utilisez le bouton ci-dessous.</p>
+                                )}
+
+                                <a
+                                    href={phoneLoginPath}
+                                    className="mt-4 inline-flex rounded-full bg-green-500 px-6 py-2.5 text-sm font-bold text-black hover:bg-green-400"
+                                >
+                                    Ouvrir login Spotify
+                                </a>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

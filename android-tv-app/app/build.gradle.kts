@@ -65,8 +65,8 @@ android {
     applicationId = "com.barbershop.tv"
     minSdk = 24
     targetSdk = 35
-    versionCode = 4
-    versionName = "1.1.1"
+    versionCode = 5
+    versionName = "1.2.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -87,7 +87,7 @@ android {
         logger.warn("TV release signing is not configured. Release APK will be signed with debug key.")
       }
 
-      isMinifyEnabled = true
+      isMinifyEnabled = false
       proguardFiles(
         getDefaultProguardFile("proguard-android-optimize.txt"),
         "proguard-rules.pro"

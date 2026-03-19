@@ -281,7 +281,7 @@ function LoginRequired() {
                         href="/"
                         className="block text-sm text-muted-foreground hover:text-primary transition-colors"
                     >
-                        ← Retour à l'accueil
+                        ← Retour à l&apos;accueil
                     </Link>
                 </div>
             </div>
@@ -302,7 +302,7 @@ function NotAdmin() {
                 </div>
                 <h2 className="text-xl font-bold mb-2">Accès refusé</h2>
                 <p className="text-muted-foreground text-sm mb-6">
-                    Vous n'avez pas les droits administrateur
+                    Vous n&apos;avez pas les droits administrateur
                 </p>
                 <div className="flex gap-3">
                     <Button

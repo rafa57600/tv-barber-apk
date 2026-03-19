@@ -147,7 +147,7 @@ export default function AdminDashboard() {
                         <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center mb-1">
                             <span className="text-xl font-bold text-primary">{stats.todayAppointments}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">Aujourd'hui</span>
+                        <span className="text-xs text-muted-foreground">Aujourd&apos;hui</span>
                     </div>
                 </motion.div>
 
@@ -225,7 +225,7 @@ export default function AdminDashboard() {
             {/* Today's Appointments */}
             <div>
                 <div className="flex items-center justify-between mb-3">
-                    <h2 className="font-semibold">Aujourd'hui</h2>
+                    <h2 className="font-semibold">Aujourd&apos;hui</h2>
                     <Link href="/admin/appointments" className="text-sm text-primary flex items-center gap-1">
                         Tout voir <ChevronRight className="w-4 h-4" />
                     </Link>

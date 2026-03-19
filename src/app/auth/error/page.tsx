@@ -22,12 +22,12 @@ export default function AuthErrorPage() {
                         />
                     </svg>
                 </div>
-                <h1 className="text-2xl font-bold mb-2">Erreur d'authentification</h1>
+                <h1 className="text-2xl font-bold mb-2">Erreur d&apos;authentification</h1>
                 <p className="text-muted-foreground mb-6">
                     Une erreur est survenue lors de la connexion. Veuillez réessayer.
                 </p>
                 <Button asChild>
-                    <Link href="/">Retour à l'accueil</Link>
+                    <Link href="/">Retour à l&apos;accueil</Link>
                 </Button>
             </div>
         </div>

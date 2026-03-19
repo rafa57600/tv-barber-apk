@@ -13,8 +13,9 @@ declare global {
             skipNext: () => void
             skipPrevious: () => void
             isConnected: () => boolean
+            seekForward: (ms: number) => void
         }
-        onAndroidSpotifyEvent?: (event: string, data: any) => void
+        onAndroidSpotifyEvent?: (event: string, data: unknown) => void
     }
 }
 
@@ -34,6 +35,8 @@ export interface SpotifyPlaybackState {
     duration: number
     track: SpotifyTrack | null
 }
+
+export type SpotifyConnectionMode = 'native' | 'web' | 'fallback' | 'none'
 
 export interface SpotifySDKControls {
     /** Toggle play / pause */
@@ -57,6 +60,7 @@ export interface SpotifySDKControls {
 interface UseSpotifySDKReturn {
     ready: boolean
     connected: boolean
+    connectionMode: SpotifyConnectionMode
     needsAuth: boolean
     error: string | null
     playback: SpotifyPlaybackState | null
@@ -127,6 +131,7 @@ async function fetchToken(): Promise<string | null> {
 export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpotifySDKReturn {
     const [ready, setReady] = useState(false)
     const [connected, setConnected] = useState(false)
+    const [connectionMode, setConnectionMode] = useState<SpotifyConnectionMode>('none')
     const [needsAuth, setNeedsAuth] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [playback, setPlayback] = useState<SpotifyPlaybackState | null>(null)
@@ -148,17 +153,27 @@ export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpo
         
         if (window.SpotifyBridge) {
             console.log('SpotifyBridge detected! Using Android Native SDK.')
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsAndroidApp(true)
             setReady(true)
             setConnected(window.SpotifyBridge.isConnected())
+            if (window.SpotifyBridge.isConnected()) setConnectionMode('native')
             setNeedsAuth(false)
             setDeviceId('android-native-device')
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             window.onAndroidSpotifyEvent = (event: string, data: any) => {
                 switch (event) {
-                    case 'onSpotifyConnected':
-                        setConnected(Boolean(data))
+                    case 'onSpotifyConnected': {
+                        const isConn = Boolean(data)
+                        setConnected(isConn)
+                        setConnectionMode(prev => {
+                            if (isConn) return 'native'
+                            if (prev === 'native') return 'none'
+                            return prev
+                        })
                         break
+                    }
                     case 'onSpotifyPlaybackState':
                         const state = typeof data === 'string' ? JSON.parse(data) : data
                         setPlayback({
@@ -169,7 +184,12 @@ export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpo
                                 uri: state.track.uri,
                                 name: state.track.name,
                                 artists: [{ name: state.track.artist }],
-                                album: { name: '', images: [] }, // Android SDK art is separate
+                                album: {
+                                    name: state.track.albumName || '',
+                                    images: state.track.albumArtUrl
+                                        ? [{ url: state.track.albumArtUrl }]
+                                        : []
+                                },
                                 duration_ms: state.track.duration
                             } : null
                         })
@@ -222,22 +242,6 @@ export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpo
         }
     }, [])
 
-    const ensureContextLoaded = useCallback(async (): Promise<boolean> => {
-        if (window.SpotifyBridge) return true
-        
-        const player = playerRef.current
-        if (!player) return false
-
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const state = await player.getCurrentState() as any
-            if (state?.track_window?.current_track) {
-                return true
-            }
-        } catch {}
-        return startPlayback(lastRequestedUriRef.current)
-    }, [startPlayback])
-
     // ── Initialise the SDK player (only if not Android Bridge) ─────────────
 
     useEffect(() => {
@@ -281,6 +285,7 @@ export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpo
                 await loadSDKScript()
                 if (destroyed) return
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const Spotify = (window as unknown as Record<string, any>).Spotify
                 if (!Spotify) {
                     setError('SDK Spotify indisponible sur cet appareil')
@@ -324,6 +329,7 @@ export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpo
                     setDeviceId(device_id)
                     setReady(true)
                     setConnected(true)
+                    setConnectionMode('web')
                     setNeedsAuth(false)
                     setError(null)
                     clearRetry()
@@ -332,10 +338,12 @@ export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpo
                 player.addListener('not_ready', () => {
                     if (destroyed) return
                     setConnected(false)
+                    setConnectionMode(prev => prev === 'web' ? 'none' : prev)
                 })
 
                 player.addListener('player_state_changed', (state: unknown) => {
                     if (destroyed || !state) return
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const s = state as any
                     const currentTrack = s.track_window?.current_track ?? null
                     if (currentTrack?.uri) lastRequestedUriRef.current = currentTrack.uri
@@ -368,7 +376,7 @@ export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpo
                     setError(`Erreur d'initialisation Spotify: ${message}`)
                 })
 
-                player.addListener('authentication_error', ({ message }: { message: string }) => {
+                player.addListener('authentication_error', ({ message: _message }: { message: string }) => {
                     if (destroyed) return
                     setNeedsAuth(true)
                     setReady(false)
@@ -380,7 +388,7 @@ export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpo
                     scheduleRetry(4000)
                 })
 
-                player.addListener('account_error', ({ message }: { message: string }) => {
+                player.addListener('account_error', ({ message: _message }: { message: string }) => {
                     if (destroyed) return
                     setError('Compte Spotify Premium requis pour la lecture TV')
                 })
@@ -426,71 +434,224 @@ export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpo
         }
     }, [playerName, startPlayback])
 
+    // ── Web API Fallback Poller ──────────────────────────────────────────
+
+    useEffect(() => {
+        // Only run the fallback poller if we are NOT connected via Native/Web SDK
+        if (connectionMode === 'native' || connectionMode === 'web') return
+
+        let timeoutId: number | null = null
+        let isDestroyed = false
+
+        const pollWebAPI = async () => {
+            if (isDestroyed) return
+            
+            const token = tokenRef.current || await fetchToken()
+            if (!token) {
+                tokenRef.current = null
+                timeoutId = window.setTimeout(pollWebAPI, 8000)
+                return
+            }
+            tokenRef.current = token
+
+            try {
+                const res = await fetch('https://api.spotify.com/v1/me/player', {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+
+                if (isDestroyed) return
+
+                if (res.status === 204) {
+                    // Nothing playing right now
+                    setConnectionMode(prev => {
+                        if (prev === 'fallback') {
+                           setPlayback(null)
+                           return 'none'
+                        }
+                        return prev
+                    })
+                    timeoutId = window.setTimeout(pollWebAPI, 4000)
+                    return
+                }
+
+                if (res.status === 401) {
+                    tokenRef.current = null
+                    timeoutId = window.setTimeout(pollWebAPI, 2000)
+                    return
+                }
+
+                if (res.ok) {
+                    const data = await res.json()
+                    if (isDestroyed) return
+
+                    const t = data.item
+                    if (t && t.type === 'track') {
+                        setConnectionMode('fallback')
+                        setPlayback({
+                            paused: !data.is_playing,
+                            position: data.progress_ms,
+                            duration: t.duration_ms || 0,
+                            track: {
+                                uri: t.uri,
+                                name: t.name,
+                                artists: t.artists.map((a: { name: string }) => ({ name: a.name })),
+                                album: {
+                                    name: t.album?.name || '',
+                                    images: t.album?.images || []
+                                },
+                                duration_ms: t.duration_ms
+                            }
+                        })
+                    } else {
+                        setConnectionMode(prev => {
+                            if (prev === 'fallback') {
+                               setPlayback(null)
+                               return 'none'
+                            }
+                            return prev
+                        })
+                    }
+                    timeoutId = window.setTimeout(pollWebAPI, 3000)
+                } else {
+                    timeoutId = window.setTimeout(pollWebAPI, 5000)
+                }
+            } catch (err) {
+                timeoutId = window.setTimeout(pollWebAPI, 8000)
+            }
+        }
+
+        pollWebAPI()
+
+        return () => {
+            isDestroyed = true
+            if (timeoutId) window.clearTimeout(timeoutId)
+        }
+    }, [connectionMode])
+
     // ── Control helpers ──────────────────────────────────────────────────
 
+    const callWebApiControl = useCallback(async (endpoint: string, method: 'PUT' | 'POST' = 'POST', body?: Record<string, unknown>) => {
+        const token = tokenRef.current || await fetchToken()
+        if (!token) return false
+        try {
+            const res = await fetch(`https://api.spotify.com/v1/me/player/${endpoint}`, {
+                method,
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    ...(body ? { 'Content-Type': 'application/json' } : {})
+                },
+                body: body ? JSON.stringify(body) : undefined
+            })
+            return res.ok || res.status === 204
+        } catch {
+            return false
+        }
+    }, [])
+
     const togglePlay = useCallback(() => {
-        if (window.SpotifyBridge) {
+        if (connectionMode === 'native' && window.SpotifyBridge) {
             if (playback?.paused) window.SpotifyBridge.resume()
             else window.SpotifyBridge.pause()
             return
         }
-        void ensureContextLoaded().then((hasContext) => {
-            if (hasContext) playerRef.current?.togglePlay()
-        })
-    }, [ensureContextLoaded, playback?.paused])
+        if (connectionMode === 'fallback') {
+            void callWebApiControl(playback?.paused ? 'play' : 'pause', 'PUT')
+            return
+        }
+        if (connectionMode === 'web' && playerRef.current) {
+            playerRef.current.togglePlay()
+            return
+        }
+        void callWebApiControl('play', 'PUT')
+    }, [connectionMode, playback?.paused, callWebApiControl])
 
     const nextTrack = useCallback(() => {
-        if (window.SpotifyBridge) {
+        if (connectionMode === 'native' && window.SpotifyBridge) {
             window.SpotifyBridge.skipNext()
             return
         }
-        void ensureContextLoaded().then((hasContext) => {
-            if (hasContext) playerRef.current?.nextTrack()
-        })
-    }, [ensureContextLoaded])
+        if (connectionMode === 'web' && playerRef.current) {
+            playerRef.current.nextTrack()
+            return
+        }
+        void callWebApiControl('next', 'POST')
+    }, [connectionMode, callWebApiControl])
 
     const previousTrack = useCallback(() => {
-        if (window.SpotifyBridge) {
+        if (connectionMode === 'native' && window.SpotifyBridge) {
             window.SpotifyBridge.skipPrevious()
             return
         }
-        void ensureContextLoaded().then((hasContext) => {
-            if (hasContext) playerRef.current?.previousTrack()
-        })
-    }, [ensureContextLoaded])
+        if (connectionMode === 'web' && playerRef.current) {
+            playerRef.current.previousTrack()
+            return
+        }
+        void callWebApiControl('previous', 'POST')
+    }, [connectionMode, callWebApiControl])
 
     const seekForward = useCallback((ms: number = 15_000) => {
-        if (window.SpotifyBridge) return // Android SDK doesn't easily support arbitrary seek via App Remote without more code
-        void ensureContextLoaded().then((hasContext) => {
-            if (!hasContext) return
-            playerRef.current?.getCurrentState().then((state: any) => {
+        if (connectionMode === 'native' && window.SpotifyBridge) {
+            window.SpotifyBridge.seekForward(ms)
+            return
+        }
+        if (connectionMode === 'fallback' && playback) {
+            void callWebApiControl(`seek?position_ms=${playback.position + ms}`, 'PUT')
+            return
+        }
+        if (connectionMode === 'web' && playerRef.current) {
+            playerRef.current.getCurrentState().then((state: { position: number } | null) => {
                 if (state) playerRef.current?.seek(state.position + ms)
             })
-        })
-    }, [ensureContextLoaded])
+        }
+    }, [connectionMode, playback, callWebApiControl])
 
     const setVolume = useCallback((v: number) => {
-        if (window.SpotifyBridge) return // App Remote volume is usually system volume or handled by native app
+        if (connectionMode === 'native' && window.SpotifyBridge) return
+        if (connectionMode === 'fallback') {
+            void callWebApiControl(`volume?volume_percent=${Math.round(v * 100)}`, 'PUT')
+            return
+        }
         playerRef.current?.setVolume(v)
-    }, [])
+    }, [connectionMode, callWebApiControl])
 
     const play = useCallback((spotifyUri: string) => {
+        if (connectionMode === 'native' && window.SpotifyBridge) {
+            window.SpotifyBridge.play(spotifyUri)
+            return
+        }
         void startPlayback(spotifyUri)
-    }, [startPlayback])
+    }, [connectionMode, startPlayback])
 
     const pause = useCallback(() => {
-        if (window.SpotifyBridge) window.SpotifyBridge.pause()
-        else playerRef.current?.pause()
-    }, [])
+        if (connectionMode === 'native' && window.SpotifyBridge) {
+            window.SpotifyBridge.pause()
+            return
+        }
+        if (connectionMode === 'web' && playerRef.current) {
+            playerRef.current.pause()
+            return
+        }
+        void callWebApiControl('pause', 'PUT')
+    }, [connectionMode, callWebApiControl])
 
     const resume = useCallback(() => {
-        if (window.SpotifyBridge) window.SpotifyBridge.resume()
-        else playerRef.current?.resume()
-    }, [])
+        if (connectionMode === 'native' && window.SpotifyBridge) {
+            window.SpotifyBridge.resume()
+            return
+        }
+        if (connectionMode === 'web' && playerRef.current) {
+            playerRef.current.resume()
+            return
+        }
+        void callWebApiControl('play', 'PUT')
+    }, [connectionMode, callWebApiControl])
+
+    const effectiveConnected = connected || connectionMode === 'fallback'
 
     return {
         ready,
-        connected,
+        connected: effectiveConnected,
+        connectionMode,
         needsAuth,
         error,
         playback,

@@ -29,8 +29,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true)
     const [isConfigured, setIsConfigured] = useState(false)
 
+    async function loadProfile(user: User) {
+        try {
+            let userProfile = await getProfile(user.uid)
+
+            if (!userProfile) {
+                // Create profile for new users
+                await createProfile(user.uid, {
+                    email: user.email || '',
+                    full_name: user.displayName || '',
+                    avatar_url: user.photoURL || '',
+                    role: 'client' // Default role, manually set 'admin' in Firebase for admin users
+                })
+                userProfile = await getProfile(user.uid)
+            }
+
+            setProfile(userProfile)
+        } catch (error) {
+            console.error('Error loading profile:', error)
+        }
+    }
+
     useEffect(() => {
         const configured = !!isFirebaseConfigured()
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsConfigured(configured)
 
         if (!configured || !auth) {
@@ -54,27 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return () => unsubscribe()
     }, [])
-
-    async function loadProfile(user: User) {
-        try {
-            let userProfile = await getProfile(user.uid)
-
-            if (!userProfile) {
-                // Create profile for new users
-                await createProfile(user.uid, {
-                    email: user.email || '',
-                    full_name: user.displayName || '',
-                    avatar_url: user.photoURL || '',
-                    role: 'client' // Default role, manually set 'admin' in Firebase for admin users
-                })
-                userProfile = await getProfile(user.uid)
-            }
-
-            setProfile(userProfile)
-        } catch (error) {
-            console.error('Error loading profile:', error)
-        }
-    }
 
     async function signInWithGoogle() {
         if (!isConfigured || !auth) {

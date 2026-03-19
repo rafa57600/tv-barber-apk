@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() {
   private var splashDismissed = false
 
   private var spotifyAppRemote: SpotifyAppRemote? = null
+  private var spotifyConnecting = false
   private val gson = Gson()
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,6 +85,8 @@ class MainActivity : AppCompatActivity() {
       Log.e(TAG, "Spotify Client ID is not configured")
       return
     }
+    if (spotifyConnecting || spotifyAppRemote?.isConnected == true) return
+    spotifyConnecting = true
 
     val connectionParams = ConnectionParams.Builder(BuildConfig.SPOTIFY_CLIENT_ID)
       .setRedirectUri("barbershoptv://callback")
@@ -92,6 +95,7 @@ class MainActivity : AppCompatActivity() {
 
     SpotifyAppRemote.connect(this, connectionParams, object : Connector.ConnectionListener {
       override fun onConnected(appRemote: SpotifyAppRemote) {
+        spotifyConnecting = false
         spotifyAppRemote = appRemote
         Log.d(TAG, "Connected to Spotify")
         subscribeToSpotifyState()
@@ -100,9 +104,12 @@ class MainActivity : AppCompatActivity() {
       }
 
       override fun onFailure(throwable: Throwable) {
+        spotifyConnecting = false
         Log.e(TAG, "Spotify connection failed", throwable)
         spotifyAppRemote = null
         notifyWebview("onSpotifyConnected", false)
+        // Retry after 10 seconds
+        retryHandler.postDelayed({ connectToSpotify() }, 10_000)
       }
     })
   }
@@ -122,7 +129,14 @@ class MainActivity : AppCompatActivity() {
         "name" to playerState.track?.name,
         "artist" to playerState.track?.artist?.name,
         "uri" to playerState.track?.uri,
-        "duration" to playerState.track?.duration
+        "duration" to playerState.track?.duration,
+        "albumName" to (playerState.track?.album?.name ?: ""),
+        "albumArtUrl" to (playerState.track?.let { track ->
+          val raw = track.imageUri?.raw ?: ""
+          if (raw.startsWith("spotify:image:")) {
+            "https://i.scdn.co/image/${raw.removePrefix("spotify:image:")}"
+          } else ""
+        } ?: "")
       )
       stateMap["position"] = playerState.playbackPosition
       
@@ -132,7 +146,12 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun notifyWebview(event: String, data: Any) {
-    val script = "if(window.onAndroidSpotifyEvent) window.onAndroidSpotifyEvent('$event', $data);"
+    val jsData = when (data) {
+      is String -> data  // Already JSON-encoded string — inject raw
+      is Boolean -> if (data) "true" else "false"
+      else -> data.toString()
+    }
+    val script = "if(window.onAndroidSpotifyEvent) window.onAndroidSpotifyEvent('$event', $jsData);"
     runOnUiThread {
       webView.evaluateJavascript(script, null)
     }
@@ -245,6 +264,7 @@ class MainActivity : AppCompatActivity() {
       mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
       loadWithOverviewMode = true
       useWideViewPort = true
+      textZoom = 100
       setSupportZoom(false)
       displayZoomControls = false
       builtInZoomControls = false
@@ -256,6 +276,7 @@ class MainActivity : AppCompatActivity() {
     webView.isFocusable = true
     webView.isFocusableInTouchMode = true
     webView.requestFocus()
+    webView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
     // Add JavaScript Bridge
     webView.addJavascriptInterface(SpotifyBridge(), "SpotifyBridge")
@@ -401,6 +422,12 @@ class MainActivity : AppCompatActivity() {
     fun skipPrevious() {
       Log.d(TAG, "Bridge: skipPrevious")
       spotifyAppRemote?.playerApi?.skipPrevious()
+    }
+
+    @JavascriptInterface
+    fun seekForward(ms: Int) {
+      Log.d(TAG, "Bridge: seekForward $ms")
+      spotifyAppRemote?.playerApi?.seekToRelativePosition(ms.toLong())
     }
 
     @JavascriptInterface

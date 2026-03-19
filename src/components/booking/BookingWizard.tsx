@@ -227,7 +227,7 @@ export function BookingWizard() {
                 <div className="bg-card rounded-2xl shadow-lg p-8 text-center">
                     <p className="text-muted-foreground mb-2">Aucun service disponible</p>
                     <p className="text-sm text-muted-foreground">
-                        Veuillez contacter le salon pour plus d'informations.
+                        Veuillez contacter le salon pour plus d&apos;informations.
                     </p>
                 </div>
             </div>

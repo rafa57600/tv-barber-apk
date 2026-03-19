@@ -11,6 +11,7 @@ import { getAppointments, getBarbers, getServices } from '@/lib/firebase/firesto
 import { useNewAppointmentAnnouncer } from '@/hooks/useVoiceAnnouncement'
 import { SpotifyPlayer } from '@/components/display/SpotifyPlayer'
 import { AnnouncementBanner } from '@/components/display/AnnouncementBanner'
+import { WeatherWidget } from '@/components/display/WeatherWidget'
 import type { SpotifyPlayerRef } from '@/components/display/SpotifyPlayer'
 import type { Appointment, Barber, Service } from '@/types/database.types'
 
@@ -116,10 +117,6 @@ export function Display2Screen() {
         spotifyCtrl.current?.toggleMute()
         registerRemoteInteraction()
     }, [registerRemoteInteraction])
-
-    const handleSpotifyLogin = useCallback(() => {
-        spotifyCtrl.current?.openSpotifyLogin()
-    }, [])
 
     // ─── Announcements ──────────────────────────────────────────────────
 
@@ -228,12 +225,6 @@ export function Display2Screen() {
                 return
             }
 
-            if (e.key === 'KeyL' || e.key === 'MediaPlay') {
-                e.preventDefault()
-                handleSpotifyLogin()
-                return
-            }
-
             if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'GoBack') {
                 e.preventDefault()
 
@@ -265,7 +256,6 @@ export function Display2Screen() {
         handleForwardTrack,
         handleNextTrack,
         handlePreviousTrack,
-        handleSpotifyLogin,
         handleToggleMute,
         registerRemoteInteraction,
         toggleExpanded,
@@ -303,13 +293,7 @@ export function Display2Screen() {
                     <span className="text-3xl font-bold text-white font-mono">{format(currentTime, 'HH:mm')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={handleSpotifyLogin}
-                        className="rounded-full border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold text-white/85 hover:bg-black/70"
-                    >
-                        Login Spotify
-                    </button>
+                    <WeatherWidget />
                     {activeAnnouncement && (
                         <button
                             type="button"
@@ -380,7 +364,7 @@ export function Display2Screen() {
                                     })}
                                     {next.length === 0 && !curr && (
                                         <div className="flex w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 py-9 text-zinc-300">
-                                            <div className="text-center"><Clock className="mx-auto mb-2 h-9 w-9 opacity-70" /><p className="text-lg">Aucun rendez-vous prevu</p></div>
+                                            <div className="text-center"><Clock className="mx-auto mb-2 h-9 w-9 opacity-70" /><p className="text-lg">Aucun rendez-vous prévu</p></div>
                                         </div>
                                     )}
                                 </div>
@@ -400,7 +384,7 @@ export function Display2Screen() {
                                         <span className="shrink-0 text-sm text-zinc-300">{curr.start_time}</span>
                                     </div>
                                 ) : <p className="mb-1 truncate text-base font-semibold text-zinc-200">Aucun rendez-vous en cours</p>}
-                                <p className="truncate text-sm text-zinc-300">{nextOne ? `Prochain: ${nextOne.start_time} - ${nextOne.serviceData?.name}` : 'Prochain: aucun rendez-vous'}</p>
+                                <p className="truncate text-sm text-zinc-300">{nextOne ? `Prochain: ${nextOne.start_time} - ${nextOne.serviceData?.name}` : `Prochain: aucun rendez-vous`}</p>
                             </div>
                             <div className="flex shrink-0 items-center gap-3 pl-2 text-white/90">
                                 <span className="text-lg font-semibold">{count} RDV</span>

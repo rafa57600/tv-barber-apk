@@ -296,9 +296,7 @@ export default function TvSetupPage() {
                             <Music2 className="h-6 w-6" />
                             <h1 className="text-2xl font-semibold">Step 2: Spotify Login</h1>
                         </div>
-                        <p className="mb-5 text-sm text-zinc-300">
                             Connect the salon Spotify account. TV will continue automatically after login.
-                        </p>
 
                         {spotifyQrImageUrl ? (
                             <img
