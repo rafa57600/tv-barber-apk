@@ -235,7 +235,7 @@ export default function TvSetupPage() {
         <main className="min-h-screen w-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white">
             <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center justify-center gap-6 p-6 text-center">
                 <div className="mb-1 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs uppercase tracking-[0.2em] text-zinc-300">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                    <img src="/icons/icon-512.png" alt="Fly Barbershop" className="h-4 w-4 rounded-full" />
                     TV Setup
                 </div>
 
@@ -337,9 +337,9 @@ export default function TvSetupPage() {
                     <section className="w-full max-w-2xl rounded-3xl border border-emerald-400/40 bg-emerald-500/10 p-8">
                         <div className="mb-2 flex items-center justify-center gap-2 text-emerald-300">
                             <CheckCircle2 className="h-6 w-6" />
-                            <h1 className="text-2xl font-semibold">Setup Complete</h1>
+                            <h2 className="text-2xl font-bold text-white">Fly <span className="text-green-500">Barbershop</span></h2>
                         </div>
-                        <p className="text-zinc-200">Opening display page...</p>
+                        <p className="text-zinc-400">TV Display Setup</p>
                     </section>
                 )}
             </div>

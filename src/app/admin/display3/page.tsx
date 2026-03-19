@@ -103,12 +103,12 @@ export default function Display3Page() {
             <div className="h-full flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-4">
-                        <img src="/icons/icon-512.png" alt="BarberSHOP" className="w-16 h-16 rounded-2xl" />
-                        <div>
-                            <h1 className="text-3xl font-bold text-white">Barber<span className="text-green-500">SHOP</span></h1>
-                            <p className="text-zinc-400">{format(currentTime, 'EEEE d MMMM yyyy', { locale: fr })}</p>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-3 bg-black/50 backdrop-blur-md rounded-2xl px-4 py-2">
+                            <img src="/icons/icon-512.png" alt="Fly Barbershop" className="w-10 h-10 rounded-xl" />
+                            <span className="text-lg font-bold text-white">Fly <span className="text-green-500">Barbershop</span></span>
                         </div>
+                        <p className="text-zinc-400">{format(currentTime, 'EEEE d MMMM yyyy', { locale: fr })}</p>
                     </div>
                     <div className="text-right">
                         <div className="text-6xl font-bold text-white font-mono">{format(currentTime, 'HH:mm')}</div>

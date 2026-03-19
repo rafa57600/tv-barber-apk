@@ -313,8 +313,8 @@ export function Display2Screen() {
             {/* Top bar */}
             <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-20">
                 <div className="flex items-center gap-3 bg-black/50 backdrop-blur-md rounded-2xl px-4 py-2">
-                    <img src="/icons/icon-512.png" alt="BarberSHOP" className="w-10 h-10 rounded-xl" />
-                    <span className="text-lg font-bold text-white">Fly<span className="text-green-500"> Barbershop</span></span>
+                    <img src="/icons/icon-512.png" alt="Fly Barbershop" className="w-10 h-10 rounded-xl" />
+                    <span className="text-lg font-bold text-white">Fly <span className="text-green-500">Barbershop</span></span>
                 </div>
                 <div className="bg-black/50 backdrop-blur-md rounded-2xl px-6 py-2 flex items-center gap-4">
                     <span className="text-white/60 text-sm">{format(currentTime, 'EEEE d MMMM', { locale: fr })}</span>

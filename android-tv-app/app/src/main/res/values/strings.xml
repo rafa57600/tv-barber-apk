@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="app_name">BarberSHOP Display</string>
-  <string name="splash_title">BarberSHOP</string>
+  <string name="app_name">Fly Barbershop</string>
+  <string name="splash_title">Fly Barbershop</string>
   <string name="splash_subtitle">Salon Smart TV Display</string>
   <string name="status_loading">Connexion en cours...</string>
   <string name="status_retrying">Probleme reseau. Nouvelle tentative...</string>
