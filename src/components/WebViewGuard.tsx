@@ -74,7 +74,7 @@ export function WebViewGuard({ children }: WebViewGuardProps) {
     const [attempted, setAttempted] = useState(false)
     
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+
         setMounted(true)
         const isInWebView = isWebView()
         setInWebView(isInWebView)

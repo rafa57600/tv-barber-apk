@@ -153,7 +153,7 @@ export function useSpotifySDK(playerName: string = 'BarberSHOP Display'): UseSpo
         
         if (window.SpotifyBridge) {
             console.log('SpotifyBridge detected! Using Android Native SDK.')
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+
             setIsAndroidApp(true)
             setReady(true)
             setConnected(window.SpotifyBridge.isConnected())
